@@ -74,18 +74,6 @@ func NewAddrBook() pstore.AddrBook {
 
 // background periodically schedules a gc
 func (mab *memoryAddrBook) background() {
-	ticker := time.NewTicker(1 * time.Hour)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			mab.gc()
-
-		case <-mab.ctx.Done():
-			return
-		}
-	}
 }
 
 func (mab *memoryAddrBook) Close() error {
@@ -194,8 +182,6 @@ func (mab *memoryAddrBook) SetAddrs(p peer.ID, addrs []ma.Multiaddr, ttl time.Du
 		if ttl > 0 {
 			amap[addrstr] = &expiringAddr{Addr: addr, Expires: exp, TTL: ttl}
 			mab.subManager.BroadcastAddr(p, addr)
-		} else {
-			delete(amap, addrstr)
 		}
 	}
 }
@@ -246,11 +232,6 @@ func (mab *memoryAddrBook) Addrs(p peer.ID) []ma.Multiaddr {
 
 // ClearAddrs removes all previously stored addresses
 func (mab *memoryAddrBook) ClearAddrs(p peer.ID) {
-	s := mab.segments.get(p)
-	s.Lock()
-	defer s.Unlock()
-
-	delete(s.addrs, p)
 }
 
 // AddrStream returns a channel on which all new addresses discovered for a

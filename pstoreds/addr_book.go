@@ -171,10 +171,6 @@ func NewAddrBook(ctx context.Context, store ds.Batching, opts Options) (ab *dsAd
 		ab.cache = new(noopCache)
 	}
 
-	if ab.gc, err = newAddressBookGc(ctx, ab); err != nil {
-		return nil, err
-	}
-
 	return ab, nil
 }
 
@@ -252,7 +248,6 @@ func (ab *dsAddrBook) SetAddr(p peer.ID, addr ma.Multiaddr, ttl time.Duration) {
 func (ab *dsAddrBook) SetAddrs(p peer.ID, addrs []ma.Multiaddr, ttl time.Duration) {
 	addrs = cleanAddrs(addrs)
 	if ttl <= 0 {
-		ab.deleteAddrs(p, addrs)
 		return
 	}
 	ab.setAddrs(p, addrs, ttl, ttlOverride)
@@ -322,12 +317,6 @@ func (ab *dsAddrBook) AddrStream(ctx context.Context, p peer.ID) <-chan ma.Multi
 
 // ClearAddrs will delete all known addresses for a peer ID.
 func (ab *dsAddrBook) ClearAddrs(p peer.ID) {
-	ab.cache.Remove(p)
-
-	key := addrBookBase.ChildString(b32.RawStdEncoding.EncodeToString([]byte(p)))
-	if err := ab.ds.Delete(key); err != nil {
-		log.Errorf("failed to clear addresses for peer %s: %v", p.Pretty(), err)
-	}
 }
 
 func (ab *dsAddrBook) setAddrs(p peer.ID, addrs []ma.Multiaddr, ttl time.Duration, mode ttlWriteMode) (err error) {
